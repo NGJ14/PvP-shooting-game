@@ -1,4 +1,6 @@
 import math
+import sys
+
 import pygame
 
 pygame.init()
@@ -32,6 +34,7 @@ b1Y = 0
 b1X_change = 30
 b1Y_change = 0
 b1_state = "ready"
+b1total = 24
 
 # bullet 2
 b2Img = pygame.image.load("b2.png")
@@ -39,12 +42,14 @@ b2X = 800
 b2Y = 0
 b2X_change = 30
 b2Y_change = 0
+b2total = 24
 b2_state = "ready"
 
 # healths
 h1 = 10
 h2 = 10
 font = pygame.font.Font("freesansbold.ttf", 32)
+
 h1X = 10
 h1Y = 10
 h2X = 800
@@ -53,14 +58,16 @@ h2Y = 10
 # Game over
 over_font = pygame.font.Font('freesansbold.ttf', 64)
 
+
 def show_h1(x, y):
-    score = font.render("Health : " + str(h1), True, (255, 255, 255))
-    screen.blit(score, (x, y))
+    screen.blit(font.render(f"Bullets : {str(b1total)}", True, (255, 255, 255)), (h1X, h1Y + 30))
+    screen.blit(font.render(f"Health : {str(h1)}", True, (255, 255, 255)), (x, y))
 
 
 def show_h2(x, y):
-    score = font.render("Health : " + str(h2), True, (255, 255, 255))
-    screen.blit(score, (x, y))
+    screen.blit(font.render(f"Bullets : {str(b2total)}", True, (255, 255, 255)), (h2X, h2Y + 30))
+    screen.blit(font.render(f"Health : {str(h2)}", True, (255, 255, 255)), (x, y))
+
 
 def game_over_text():
     if h1 == 0:
@@ -69,6 +76,7 @@ def game_over_text():
     elif h2 == 0:
         over_text = over_font.render("PLAYER 1 WINS", True, (255, 255, 255))
         screen.blit(over_text, (250, 250))
+
 
 # display player 1
 def p1(x, y):
@@ -97,18 +105,12 @@ def fire_b2(x, y):
 # collision detection
 def isCollision1(p2X, p2Y, b1X, b1Y):
     distance = math.sqrt(math.pow(p2X - b1X, 2) + (math.pow(p2Y - b1Y, 2)))
-    if distance < 55:
-        return True
-    else:
-        return False
+    return distance < 55
 
 
 def isCollision2(p1X, p1Y, b2X, b2Y):
     distance = math.sqrt(math.pow(p1X - b2X, 2) + (math.pow(p1Y - b2Y, 2)))
-    if distance < 55:
-        return True
-    else:
-        return False
+    return distance < 55
 
 
 running = True
@@ -118,37 +120,35 @@ while running:
     screen.blit(background, (0, 0))
 
     for event in pygame.event.get():
-
         if event.type == pygame.QUIT:
             running = False
 
         # player 1 and bullet 1 movement
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_w:
-                p1Y_change = -5
-            if event.key == pygame.K_s:
-                p1Y_change = 5
+                p1Y_change = -6
             if event.key == pygame.K_x:
-                if b1_state is "ready":
-                    b1Y = p1Y + 40
-                    fire_b1(b1X, b1Y)
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_w or event.key == pygame.K_s:
-                p1Y_change = 0
+                p1Y_change = 6
+            if event.key == pygame.K_s and b1_state == "ready" and b1total >= 1:
+                b1total -= 1
+
+                b1Y = p1Y + 40
+                fire_b1(b1X, b1Y)
+        if event.type == pygame.KEYUP and event.key in [pygame.K_w, pygame.K_x]:
+            p1Y_change = 0
 
         # player 2 and bullet 2 movement
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_i:
-                p2Y_change = -5
-            if event.key == pygame.K_k:
-                p2Y_change = 5
-            if event.key == pygame.K_m:
-                if b2_state is "ready":
-                    b2Y = p2Y + 38
-                    fire_b2(b2X, b2Y)
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_i or event.key == pygame.K_k:
-                p2Y_change = 0
+            if event.key == pygame.K_UP:
+                p2Y_change = -6
+            if event.key == pygame.K_DOWN:
+                p2Y_change = 6
+            if event.key == pygame.K_SPACE and b2_state == "ready" and b2total > 1:
+                b2total -= 1
+                b2Y = p2Y + 38
+                fire_b2(b2X, b2Y)
+        if event.type == pygame.KEYUP and event.key in [pygame.K_UP, pygame.K_DOWN]:
+            p2Y_change = 0
 
     # player 1 movement
     p1Y += p1Y_change
@@ -168,7 +168,7 @@ while running:
     if b1X >= 980:
         b1X = 150
         b1_state = "ready"
-    if b1_state is "fire":
+    if b1_state == "fire":
         fire_b1(b1X, b1Y)
         b1X += b1X_change
 
@@ -176,18 +176,15 @@ while running:
     if b2X <= 0:
         b2X = 800
         b2_state = "ready"
-    if b2_state is "fire":
+    if b2_state == "fire":
         fire_b2(b2X, b2Y)
         b2X -= b2X_change
 
-    # collision
-    collision = isCollision2(p2X, p2Y + 38, b1X, b1Y)
-    if collision:
+    if collision := isCollision2(p2X, p2Y + 38, b1X, b1Y):
         b1X = 150
         b1_state = "ready"
         h2 -= 1
-    collision = isCollision1(p1X, p1Y + 40, b2X, b2Y)
-    if collision:
+    if collision := isCollision1(p1X, p1Y + 40, b2X, b2Y):
         b2X = 800
         b2_state = "ready"
         h1 -= 1
@@ -201,14 +198,14 @@ while running:
     show_h2(h2X, h2Y)
     pygame.display.update()
 
-running = True
-while running:
+while True:
     screen.fill((0, 0, 0))
     screen.blit(background, (0, 0))
     game_over_text()
     for event in pygame.event.get():
-
         if event.type == pygame.QUIT:
-            running = False
+            pygame.quit()
+            sys.exit(1)
+            # TODO:Does not exit the window?
 
     pygame.display.update()
